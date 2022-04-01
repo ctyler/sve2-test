@@ -1,6 +1,6 @@
 /*
 
-  sve2-test
+  image-adjust
   
   (C)2022 Seneca College of Applied Arts and Technology.
   Written by Chris Tyler. Licensed under the terms of the GPL verion 2.
@@ -13,7 +13,7 @@
 #include <sys/param.h>
 
 // adjust_channels is where all the real action is
-// this file is just scaffolding
+// this file is just scaffolding!
 #include "adjust_channels.h"
 
 // Using the STBI image reader/writer
@@ -27,17 +27,25 @@
 
 int main(int argc, char *argv[]) {
 
+	// ==================== Check arg count
+	if (argc != 6) {
+		dprintf(2, "\nUsage: %s input.jpg red green blue output.jpg\nWhere red/green/blue are in the range 0.0-2.0\n", argv[0]);
+		return 1;
+	}
+
 	// ==================== Load the image file (arg 1)
 	int x, y, n;
 	unsigned char *image = stbi_load(argv[1], 
 		&x, &y, &n, 3);
 
-	printf("x:%d\ty:%d\tn:%d\n", x, y, n);
-
 	if (image == NULL) {
-		dprintf(2, "Invalid argument or file did not load.\n");
-		return 1;
+		dprintf(2, "Invalid argument or input image file did not load.\n");
+		dprintf(2, "\nUsage: %s input.jpg red green blue output.jpg\nWhere red/green/blue are in the range 0.0-2.0\n", argv[0]);
+		return 2;
 	}
+	printf("File '%s' loaded: %dx%d pixels, %d bytes per pixel.\n", argv[1], x, y, n);
+
+
 	
 	// ==================== Adjust the channels
 	
@@ -47,7 +55,7 @@ int main(int argc, char *argv[]) {
 	float greenarg = MIN(2, MAX(0, strtof(argv[3],NULL)));
 	float bluearg  = MIN(2, MAX(0, strtof(argv[4],NULL)));
 	
-	printf("red: %f\tgreen: %f\tblue: %f\n", redarg, greenarg, bluearg);
+	printf("Adjustments:\tred: %8.6f   green: %8.6f   blue: %8.6f\n", redarg, greenarg, bluearg);
 	
 	adjust_channels(image, x, y, redarg, greenarg, bluearg);
 
