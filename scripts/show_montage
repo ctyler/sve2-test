@@ -5,5 +5,7 @@
 #
 # This script uses the ImageMagick "montage" and "display" utilities
 #
+# Execute this script from the top-level directory in the
+# repo
 
 montage tests/output/bree*jpg -tile 3x3 -geometry +2+2 - | display

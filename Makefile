@@ -38,6 +38,6 @@ adjust_channels3.o:	adjust_channels.c
 			gcc ${CFLAGS} -c adjust_channels.c -D ADJUST_CHANNEL_IMPLEMENTATION=3 -o adjust_channels3.o
 
 clean:			
-			rm ${BINARIES} *.o tests/output/bree?.jpg || true
+			rm ${BINARIES} *.o tests/output/bree??.jpg tests/output/montage.jpg || true
 
 

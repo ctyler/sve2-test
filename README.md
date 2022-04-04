@@ -22,6 +22,9 @@ each with scaling factors 1.0/1.0/1.0, 0.5/0.5/0.5, and 2.0/2.0/2.0;
 the input file for the tests is in tests/input/bree.jpg and the output
 files from the tests are stored in tests/output/bree[n][abc].jpg
 
+The script scripts/show_montage will display a montage of the test 
+results for visual comparison.
+
 (Current limitations: minimal argument checking is performed, and
 the output file is a JPEG regardless of the specified extension).
 
