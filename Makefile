@@ -1,6 +1,6 @@
 CFLAGS = -g -O3 -march=armv8-a+sve2 
 ADJUST_CHANNEL_IMPLEMENTATION := 1
-BINARIES = image-adjust1 image-adjust2 
+BINARIES = image-adjust1 image-adjust2 image-adjust3
 
 all-test:		${BINARIES}
 			echo "Making and testing all versions..."
@@ -12,10 +12,10 @@ all-test:		${BINARIES}
 			qemu-aarch64 ./image-adjust2 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree2a.jpg
 			qemu-aarch64 ./image-adjust2 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree2b.jpg
 			qemu-aarch64 ./image-adjust2 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree2c.jpg
-#                       echo "===== Implementation 3 - ACLE (Intrinsics for SVE2)"
-#			qemu-aarch64 ./image-adjust3 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree3a.jpg
-#			qemu-aarch64 ./image-adjust3 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree3b.jpg
-#			qemu-aarch64 ./image-adjust3 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree3c.jpg
+			echo "===== Implementation 3 - Inline assembler for SVE2 (#2)"
+			qemu-aarch64 ./image-adjust3 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree3a.jpg
+			qemu-aarch64 ./image-adjust3 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree3b.jpg
+			qemu-aarch64 ./image-adjust3 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree3c.jpg
 
 all:			${BINARIES}
 

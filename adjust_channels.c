@@ -5,11 +5,12 @@
 	Multiple implementations are provided, selected by ADJUST_CHANNEL_IMPLEMENTATION:
 	
 	1. Naive implementation in C. Math is floating point, with multiple casts,
-		and uses the MIN macro provided by <sys/param.h>
+		and uses the MIN macro provided by <sys/param.h>. Can be vectorized
+		by GCC 11.2.1
 		
-	2. Inline assembler implementation for SVE2 (Armv9) - load structure
+	2. Inline assembler implementation for SVE2 (Armv9) - load 3-element structure
 	
-	3. Inline assembler implementation for SVE2 (Armv9) - predicate manipulation
+	3. Inline assembler implementation for SVE2 (Armv9) - interleaved factor table
 	
 	4. Intrinsic (ACLE) implementation for SVE2 (Armv9).
 	
@@ -30,9 +31,10 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 
-// -------------------------------------------------------------------- Naive
+// -------------------------------------------------------------------- Naive implementation in C
 #if ADJUST_CHANNEL_IMPLEMENTATION == 1
 
 #include <sys/param.h>
@@ -40,15 +42,13 @@
 void adjust_channels(unsigned char *image, int x_size, int y_size, 
 	float red_factor, float green_factor, float blue_factor) {
 
-	printf("Using adjust_channels() implementation #1 - Naive (possibly autovectorizable)\n");
+	printf("Using adjust_channels() implementation #1 - Naive (autovectorizable)\n");
 
-	
 	for (int i = 0; i < x_size * y_size * 3; i += 3) {
 		image[i]   = MIN((float)image[i]   * red_factor,   255);
 		image[i+1] = MIN((float)image[i+1] * blue_factor,  255);
 		image[i+2] = MIN((float)image[i+2] * green_factor, 255);
 	}
-	
 }
 
 // -------------------------------------------------------------------- Inline Assembley
@@ -59,18 +59,6 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
 
 	printf("Using adjust_channels() implementation #2 - Inline assembler for SVE2\n");
 
-	// Get arguments into correct format, 0-64 representing 0.0-2.0
-	int r = (int)((float)red_factor   * 64.0);
-	int g = (int)((float)green_factor * 64.0);
-	int b = (int)((float)blue_factor  * 64.0);
-	printf("Adjusted factors: r:%d   g:%d   b:%d\n", r, g, b);
-	int size = x_size * y_size * 3;
-	int i = 0;
-	
-	for (int e=0; e<27; e+=3) {
-	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
-	}
-	
 /*
 
         This is a fixed-point SVE 2 implementation.
@@ -130,7 +118,19 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
 	        * A compound instruction like SQDMULH would be useful, but there is no 8-bit unsigned version available
 
 */
-
+	// Get arguments into correct format, 0-64 representing 0.0-2.0
+	int r = (int)((float)red_factor   * 64.0);
+	int g = (int)((float)green_factor * 64.0);
+	int b = (int)((float)blue_factor  * 64.0);
+	printf("Adjusted factors: r:%d   g:%d   b:%d\n", r, g, b);
+	int size = x_size * y_size * 3;
+	int i = 0;
+	
+        // Diagnostic output
+//	for (int e = 0; e < 27; e += 3) {
+//	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
+//	}
+	
 	__asm__ __volatile__("												\n\
 									                                         	\n\
 		// ============================== Set up loop-invariant registers					\n\
@@ -148,103 +148,72 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
 		// ----------------------------- RED channel								\n\
 		// Process odd lanes											\n\
 		UMULLB z7.h, z0.b, z3.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation 				\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
 		ADDHNB z8.b, z7.h, z6.h					// narrow to 8 bit (take high half)		\n\
 															\n\
 		// Process even lanes											\n\
 		UMULLT z7.h, z0.b, z3.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation 				\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
 		ADDHNT z8.b, z7.h, z6.h					// narrow to 8 bit (take high half)		\n\
 															\n\
 		// ----------------------------- GREEN channel								\n\
 		// Process odd lanes											\n\
 		UMULLB z7.h, z1.b, z4.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation 				\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
 		ADDHNB z9.b, z7.h, z6.h					// narrow to 8 bit (take high half)		\n\
 															\n\
 		// Process even lanes											\n\
 		UMULLT z7.h, z1.b, z4.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation 				\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
 		ADDHNT z9.b, z7.h, z6.h					// narrow to 8 bit (take high half)		\n\
 															\n\
 		// ----------------------------- BLUE channel								\n\
 		// Process odd lanes											\n\
 		UMULLB z7.h, z2.b, z5.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation 				\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
 		ADDHNB z10.b, z7.h, z6.h				// narrow to 8 bit (take high half)		\n\
 															\n\
 		// Process even lanes											\n\
 		UMULLT z7.h, z2.b, z5.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation 				\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
 		ADDHNT z10.b, z7.h, z6.h				// narrow to 8 bit (take high half)		\n\
 															\n\
 		// ============================== Store data and loop if required					\n\
 		ST3B {z8.b, z9.b, z10.b}, p0, [ %[array], %[i] ]	// store 3 vector registers, gather by bytes	\n\
-		INCB %[i], ALL, MUL 3											\n\
-		WHILELO p0.B, %[i], %[size]										\n\
-		B.ANY L1												\n\
+		INCB %[i], ALL, MUL 3					// increment by number of lanes * 3		\n\
+		WHILELO p0.B, %[i], %[size]				// generate new predicate value			\n\
+		B.ANY L1						// branch if any predicate bits are set		\n\
 		" 
 		: [i]"+r"(i)
 		: [array]"r"(image), [red]"r"(r), [green]"r"(g), [blue]"r"(b), [size]"r"(size), "r"(i) 
 		: "memory");
 
-        printf("\n");
-	for (int e=0; e<27; e+=3) {
-	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
-	}
+        // Diagnostic output
+//      printf("\n");
+//	for (int e=0; e<27; e+=3) {
+//	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
+//	}
 	
 }
 
 
-// -------------------------------------------------------------------- Inline Assembley
-#elif ADJUST_CHANNEL_IMPLEMENTATION == 2
+// -------------------------------------------------------------------- Inline Assembley (#2)
+#elif ADJUST_CHANNEL_IMPLEMENTATION == 3
 
 void adjust_channels(unsigned char *image, int x_size, int y_size, 
 	float red_factor, float green_factor, float blue_factor) {
 
 	printf("Using adjust_channels() implementation #2 - Inline assembler for SVE2\n");
 
-	// Get arguments into correct format, 0-64 representing 0.0-2.0
-	int r = (int)((float)red_factor   * 64.0);
-	int g = (int)((float)green_factor * 64.0);
-	int b = (int)((float)blue_factor  * 64.0);
-	printf("Adjusted factors: r:%d   g:%d   b:%d\n", r, g, b);
-	int size = x_size * y_size * 3;
-	int i = 0;
-	
-	for (int e=0; e<27; e+=3) {
-	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
-	}
-	
-        // Find out how many lanes we have to process
-        uint64_t elements;
-        __asm__ __volatile__ ("CNTB %[elements]" : [elements]"r"(elements) : : )
-        
-        // Figure out the largest number less than or equal to elements that is a multiple of 3
-        int elements3 = int( elements / 3) * 3;
-	
-        // Set up the factor table for multiplication
-        unint8_t *factor_table;
-        factor_table = malloc(elements);
-
-        for (int e = 0, e<elements3; e += 3) {
-                factor_table[e]   = r;
-                factor_table[e+1] = g;
-                factor_table[e+2] = b;
-        }
-        for (int e = elements3 ; e<elements; e++) {
-                factor_table[e] = 64 ; // fixed-point value corresponding to 1.0
-        }
-	
 /*
 
-        This is a fixed-point SVE 2 implementation like the one above,
+        This is a fixed-point SVE 2 implementation like the previous one,
         with the same basic principles (8-bit fixed-point channel adjustment
         factors, etc).
         
@@ -252,7 +221,7 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
         implementation above, LD3B/ST3B is used to separate channel data
         into three different vector registers (one for each channel). In
         this implementation, the interleaved values are read into a single
-        vector register, and then multiplied by an interleave vector of the
+        vector register, and then multiplied by an interleaved vector of the
         channel factors. However, the vector size may or may not be a multiple
         of three, so the stride through memory is adjusted to the highest 
         multiple of three that is less than or equal to the number of lanes
@@ -283,7 +252,7 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
         After processing (including handling saturation), the data is placed
         back into the original memory locations.
         
-        However, the number of vector lanes is not known in advance in SVE2. If the
+        The number of vector lanes is not known at compile time in SVE2. If the
         number of lanes is not a multiple of three, then channel factors will be 
         wrong for the second iteration through the loop. For example, in a 128-bit
         SVE2 implementation, the first vector register will process 16 lanes of data,
@@ -295,58 +264,104 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
         remain unchanged, and then overlap the next load operation to start at the 
         beginning of the incomplete pixel.
         
+        (Note that if the number of lanes in a vector register _is_ a multiple of 3,
+        such as in a 384-bit impelentation of SVE2, this extra fiddling is not required
+        and will disappear).
+        
         To ensure that the incomplete pixel is unchanged, we can either manipulate the 
         predicate register, or we can simply set the scaling factor for the incomplete
         pixel elements to 1.0 (which is the approach used here).
 
-
-##########################################################################################################################
-##########################################################################################################################
-##########################################################################################################################
-##########################################################################################################################
-##########################################################################################################################
-##########################################################################################################################
+        Register usage is the same as the previous version, except:
+        
+                z0              interleaved pixel data
+                z1, z2          not used
+                z3              interleaved channel factors
+                z4, z5          not used
+ 
+        Additional parameters:
+        
+                elements3       largest number of vector lanes available
+                                        that is a multiple of 3
+                factor_table    pointer to interleaved table of channel factors
 
 */
+	// Get arguments into correct format, 0-64 representing 0.0-2.0
+	int r = (int)((float)red_factor   * 64.0);
+	int g = (int)((float)green_factor * 64.0);
+	int b = (int)((float)blue_factor  * 64.0);
+	printf("Adjusted factors: r:%d   g:%d   b:%d\n", r, g, b);
+	int size = x_size * y_size * 3;
+	int i = 0;
+	
+        // Diagnostic output
+//	for (int e = 0; e < 27; e += 3) {
+//	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
+//	}
+	
+        // Find out how many lanes we have to process
+        uint64_t elements;
+        __asm__ __volatile__ ("CNTB %[elements]" : [elements]"=r"(elements) : : );
+        
+        // Figure out the largest number less than or equal to lanes that is a multiple of 3
+        int elements3 = (elements / 3) * 3;
+	
+        // Set up the factor table for multiplication
+        uint8_t *factor_table;
+        factor_table = malloc(elements);
 
+        // ... set up elements [0 .. elements3] with interleaved channel factors
+        for (int e = 0; e < elements3; e += 3) {
+                factor_table[e]   = r;
+                factor_table[e+1] = g;
+                factor_table[e+2] = b;
+        }
+        // ... set up the remaining elements with a dummy channel factor of 1.0
+        for (int e = elements3 ; e < elements; e++) {
+                factor_table[e] = 64 ; // fixed-point value corresponding to 1.0
+        }
+	
 	__asm__ __volatile__("												\n\
 									                                         	\n\
+                // Set up predicate register with initial value                                                         \n\
+		WHILELO p0.b, %[i], %[size]				                        			\n\
+									                                         	\n\
 		// ============================== Set up loop-invariant registers					\n\
-                LD1B z3.b, [factor_table]       // load the factor table                                             \n\
-		DUP z6.h, #0		        // zero in all lanes for dummy ADDHNT operation				\n\
-                                                //      (we're using  ADDHNB/ADDHNT just for narrowing, so we add zero)	\n\
+                LD1B z3.b, p0/z, [ %[factor_table]  ]    // load the factor table                                       \n\
+		DUP z6.h, #0		         // zero in all lanes for dummy ADDHNB/ADDHNT operation			\n\
+                                                 //      (we're using  ADDHNB/ADDHNT just for narrowing, so we add zero)\n\
 															\n\
 		// ============================== Start loop and fetch data						\n\
-		WHILELO p0.B, %[i], %[size]				// set up predicate register p0			\n\
     L1:															\n\
 		LD1B z0.b, p0/z, [ %[array], %[i] ]	                // get data into one vector register    	\n\
 															\n\
 		// Process odd lanes											\n\
 		UMULLB z7.h, z0.b, z3.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation				\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
 		ADDHNB z8.b, z7.h, z6.h					// narrow to 8 bit (take high half)		\n\
 															\n\
 		// Process even lanes											\n\
 		UMULLT z7.h, z0.b, z3.b					// multiply data by factor			\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
-		UQADD z7.h, z7.h, z7.h                       		// *2						\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation   			\n\
+		UQADD z7.h, z7.h, z7.h                       		// *2 with saturation				\n\
 		ADDHNT z8.b, z7.h, z6.h					// narrow to 8 bit (take high half)		\n\
 															\n\
 		// ============================== Store data and loop if required					\n\
-		ST1B z0.b, p0/z, [ %[array], %[i] ]	                // store data back to memory                    \n\
-		ADD %[i], %[element3]											\n\
-		WHILELO p0.B, %[i], %[size]										\n\
-		B.ANY L1												\n\
+		ST1B z8.b, p0, [ %[array], %[i] ]	                // store data back to memory                    \n\
+		ADD %[i], %[i], %[elements3]	                        // advance to 1 bytes past last full pixel      \n\
+		WHILELO p0.B, %[i], %[size]                             // set up new predicate value			\n\
+		B.ANY L1						// branch if any predicate bits are set 	\n\
 		" 
 		: [i]"+r"(i)
-		: [array]"r"(image), "r"(i), [elements3]"r"(elements3), [factor_table]"r"(factor_table)
+		: [array]"r"(image), "r"(i), [elements3]"r"(elements3), [factor_table]"r"(factor_table), [size]"r"(size)
 		: "memory");
 
-        printf("\n");
-	for (int e=0; e<27; e+=3) {
-	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
-	}
+        // Diagnostic output
+//      printf("\n");
+//	for (int e = 0; e < 27; e += 3) {
+//	        printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
+//	}
 	
 }
 
@@ -358,7 +373,7 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
 
 	printf("Using adjust_channels() implementation #4 - ACLE (intrinsics for SVE2)\n");
 	printf("Coming soon!\n");
-	
+
 }
 
 #else
