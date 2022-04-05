@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# show_montage :: make a montage of the output images
+#			and display via X11
+#
+# This script uses the ImageMagick "montage" and "display" utilities
+#
+# Execute this script from the top-level directory in the
+# repo
+
+montage tests/output/bree*jpg -tile 3x4 -geometry +2+2 - | display
