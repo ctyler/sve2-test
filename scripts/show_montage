@@ -8,4 +8,4 @@
 # Execute this script from the top-level directory in the
 # repo
 
-montage tests/output/bree*jpg -tile 3x3 -geometry +2+2 - | display
+montage tests/output/bree*jpg -tile 3x4 -geometry +2+2 - | display
