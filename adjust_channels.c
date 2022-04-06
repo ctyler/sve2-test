@@ -400,7 +400,7 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
         
 */
 
-        svuint8_t       red_data, green_data, blue_data;        // data vectors for colour
+        svuint8_t       red_data, green_data, blue_data;        // data vectors for colours
         svuint8x3_t     pixels = svcreate3(red_data, green_data, blue_data);     // tuple of 3 data vectors
 
         uint64_t        lanes = svcntb();                       // count of data lanes
@@ -418,16 +418,13 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
         svuint16_t      tmp;                                    // vectors for temporary math values
         svuint8_t       tmp_out;        
         
-        // Diagnostic output
-//      printf("\n");
-//      for (int e = 0; e < 3000; e += 3) {
-//              printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
-//      }
-
-        for (i=0; i<size; i += lanes) {
+	// The bug shown in class was caused by the following line having "i += lanes" 
+	// instead of "i += lanes *3" -- which meant that most of the pixels in the 
+	// image were processed three times instead of one time, making them 3x darker
+	// or brighter than they should be.
+	// 
+	for (i=0; i<size; i += lanes * 3) {
         
-//              printf("i:%d  ", i);
-
                 // ========= Load data
                 p = svwhilelt_b8(i, size);                      // get predicate value
                 pixels = svld3(p, image + i);                   // load tuple with image data
@@ -470,12 +467,6 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
                 svst3(p, image + i, pixels);                    // store tuple to image
                                 
         }
-
-        // Diagnostic output
-//      printf("\n");
-//      for (int e = 0; e < 3000; e += 3) {
-//              printf("e:%3d   r:%3d   g:%3d   b:%3d\n", e, image[e], image[e+1], image[e+2]);
-//      }
 
 }
 
