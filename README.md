@@ -12,7 +12,7 @@ available:
 1. naive implementation, in C - vectorizable by GCC 11.2.1
 2. inline assembler implementation  - load 3-element structure
 3. inline assembler implementation  - interleaved factor table
-4. ACLE intrinsics implementation (future)
+4. ACLE intrinsics implementation
 
 The implementation may be selected with the ADJUST_CHANNEL_IMPLEMENTATION
 macro (set it to the number of the implementation desired).
@@ -23,7 +23,11 @@ the input file for the tests is in tests/input/bree.jpg and the output
 files from the tests are stored in tests/output/bree[n][abc].jpg
 
 The script scripts/show_montage will display a montage of the test 
-results for visual comparison.
+results for visual comparison (requires an X11 display server - will
+work on most Linux systems, requires additional setup to work on
+Windows or OS/X). Alternatively, the script scripts/make_montage can
+be used to create tests/output/montage.jpg, which can be transferred
+to another system for viewing.
 
 (Current limitations: minimal argument checking is performed, and
 the output file is a JPEG regardless of the specified extension).
