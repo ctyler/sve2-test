@@ -1,4 +1,4 @@
-CFLAGS = -g -O3 -march=armv8-a+sve2 
+CFLAGS = -g -O3 -march=armv8-a+sve2 -D STBI_NO_SIMD
 RUNTOOL = qemu-aarch64
 TIMETOOL = time
 ADJUST_CHANNEL_IMPLEMENTATION := 1
