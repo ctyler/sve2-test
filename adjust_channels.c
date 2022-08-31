@@ -1,6 +1,6 @@
 /*
 
-        adjust_channel :: adjust red/green/blue colour channels in an image
+        adjust_channels :: adjust red/green/blue colour channels in an image
         
         Multiple implementations are provided, selected by ADJUST_CHANNEL_IMPLEMENTATION:
         

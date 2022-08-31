@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 	
 	// ==================== Adjust the channels
 	
-	// Get arguments 2, 3, and 4; each should be a number in the range 0.0 .. 1.0
+	// Get arguments 2, 3, and 4; each should be a number in the range 0.0 .. 2.0
 	// Yes this is ugly and should be improved, this is a quick & dirty test program :-)
 	float redarg   = MIN(2, MAX(0, strtof(argv[2],NULL)));
 	float greenarg = MIN(2, MAX(0, strtof(argv[3],NULL)));
