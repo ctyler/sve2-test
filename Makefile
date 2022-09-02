@@ -1,5 +1,13 @@
-CFLAGS = -g -O3 -march=armv8-a+sve2 -D STBI_NO_SIMD
-RUNTOOL = qemu-aarch64
+CFLAGS =      -g -O3 -mcpu=neoverse-512tvb
+CFLAGS_MAIN = -g -O3 -mcpu=neoverse-512tvb
+#CFLAGS =       -g -O3 -march=armv8.5-a+sve2 -mcpu=neoverse-v1
+#CFLAGS_MAIN =  -g -O3 -march=armv8.5-a+sve2 -mcpu=neoverse-v1
+#CFLAGS =       -g -O3 -mcpu=neoverse-v1+sve
+#CFLAGS =       -g -O3 -mcpu=neoverse-v1+sve
+#CFLAGS_MAIN =  -g -O3 -mcpu=neoverse-v1+sve2
+#CFLAGS_MAIN =  -g -O3 -mcpu=neoverse-v1+sve2
+#-D STBI_NO_SIMD
+RUNTOOL = 
 TIMETOOL = time
 ADJUST_CHANNEL_IMPLEMENTATION := 1
 BINARIES = image-adjust1 image-adjust2 image-adjust3 image-adjust4
@@ -26,16 +34,16 @@ all-test:		${BINARIES}
 all:			${BINARIES}
 
 image-adjust1:		image-adjust.c adjust_channels1.o
-			gcc ${CFLAGS} image-adjust.c adjust_channels1.o -o image-adjust1
+			gcc ${CFLAGS_MAIN} image-adjust.c adjust_channels1.o -o image-adjust1
 
 image-adjust2:		image-adjust.c adjust_channels2.o
-			gcc ${CFLAGS} image-adjust.c adjust_channels2.o -o image-adjust2
+			gcc ${CFLAGS_MAIN} image-adjust.c adjust_channels2.o -o image-adjust2
 
 image-adjust3:		image-adjust.c adjust_channels3.o
-			gcc ${CFLAGS} image-adjust.c adjust_channels3.o -o image-adjust3
+			gcc ${CFLAGS_MAIN} image-adjust.c adjust_channels3.o -o image-adjust3
 
 image-adjust4:		image-adjust.c adjust_channels4.o
-			gcc ${CFLAGS} image-adjust.c adjust_channels4.o -o image-adjust4
+			gcc ${CFLAGS_MAIN} image-adjust.c adjust_channels4.o -o image-adjust4
 
 adjust_channels1.o:	adjust_channels.c
 			gcc ${CFLAGS} -c adjust_channels.c -D ADJUST_CHANNEL_IMPLEMENTATION=1 -o adjust_channels1.o
