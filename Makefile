@@ -1,35 +1,34 @@
-CFLAGS =      -g -O3 -mcpu=neoverse-512tvb
-CFLAGS_MAIN = -g -O3 -mcpu=neoverse-512tvb
-#CFLAGS =       -g -O3 -march=armv8.5-a+sve2 -mcpu=neoverse-v1
-#CFLAGS_MAIN =  -g -O3 -march=armv8.5-a+sve2 -mcpu=neoverse-v1
-#CFLAGS =       -g -O3 -mcpu=neoverse-v1+sve
-#CFLAGS =       -g -O3 -mcpu=neoverse-v1+sve
-#CFLAGS_MAIN =  -g -O3 -mcpu=neoverse-v1+sve2
-#CFLAGS_MAIN =  -g -O3 -mcpu=neoverse-v1+sve2
-#-D STBI_NO_SIMD
-RUNTOOL = 
-TIMETOOL = time
-ADJUST_CHANNEL_IMPLEMENTATION := 1
+# C compiler flags
+CFLAGS = -g -O3 -march=armv8-a+sve2 
+CFLAGS_MAIN = -g -O3 -march=armv8-a+sve2 
+
+# names of the binary files
 BINARIES = image-adjust1 image-adjust2 image-adjust3 image-adjust4
+
+# tool used to run the binaries
+RUNTOOL = qemu-aarch64
+
+# tool used to time execution
+TIMETOOL = time
 
 all-test:		${BINARIES}
 			echo "Making and testing all versions..."
 			echo "===== Implementation 1 - Naive (but potentially auto-vectorized!)"
-			${RUNTOOL} ./image-adjust1 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree1a.jpg
-			${RUNTOOL} ./image-adjust1 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree1b.jpg
-			${RUNTOOL} ./image-adjust1 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree1c.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust1 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree1a.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust1 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree1b.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust1 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree1c.jpg
 			echo "===== Implementation 2 - Inline assembler for SVE2"
-			${RUNTOOL} ./image-adjust2 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree2a.jpg
-			${RUNTOOL} ./image-adjust2 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree2b.jpg
-			${RUNTOOL} ./image-adjust2 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree2c.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust2 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree2a.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust2 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree2b.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust2 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree2c.jpg
 			echo "===== Implementation 3 - Inline assembler for SVE2 (#2)"
-			${RUNTOOL} ./image-adjust3 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree3a.jpg
-			${RUNTOOL} ./image-adjust3 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree3b.jpg
-			${RUNTOOL} ./image-adjust3 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree3c.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust3 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree3a.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust3 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree3b.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust3 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree3c.jpg
 			echo "===== Implementation 4 - Inline assembler for SVE2 (#2)"
-			${RUNTOOL} ./image-adjust4 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree4a.jpg
-			${RUNTOOL} ./image-adjust4 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree4b.jpg
-			${RUNTOOL} ./image-adjust4 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree4c.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust4 tests/input/bree.jpg 1.0 1.0 1.0 tests/output/bree4a.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust4 tests/input/bree.jpg 0.5 0.5 0.5 tests/output/bree4b.jpg
+			${TIMETOOL} ${RUNTOOL} ./image-adjust4 tests/input/bree.jpg 2.0 2.0 2.0 tests/output/bree4c.jpg
 
 all:			${BINARIES}
 

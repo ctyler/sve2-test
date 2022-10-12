@@ -84,7 +84,7 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
 
                 z3.h            red channel factor in each lane
                 z4.h            green channel factor in each lane
-                z5.h            blue channel data in each lane
+                z5.h            blue channel factor in each lane
                 
                 z6.h            all-zeros
                 
@@ -418,11 +418,6 @@ void adjust_channels(unsigned char *image, int x_size, int y_size,
         svuint16_t      tmp;                                    // vectors for temporary math values
         svuint8_t       tmp_out;        
         
-	// The bug shown in class was caused by the following line having "i += lanes" 
-	// instead of "i += lanes *3" -- which meant that most of the pixels in the 
-	// image were processed three times instead of one time, making them 3x darker
-	// or brighter than they should be.
-	// 
 	for (i=0; i<size; i += lanes * 3) {
         
                 // ========= Load data
